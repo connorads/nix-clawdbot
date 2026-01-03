@@ -2,6 +2,8 @@
 
 > Declarative Clawdis. Bulletproof by default.
 >
+> macOS only. Linux/Windows are out of scope for now.
+>
 > <sub>[skip to agent copypasta](#give-this-to-your-ai-agent)</sub>
 >
 > <sub>Questions? Join the Clawdis Discord and ask in **#nix**.</sub>
