@@ -5,18 +5,25 @@ repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 source_file="$repo_root/nix/sources/clawdbot-source.nix"
 app_file="$repo_root/nix/packages/clawdbot-app.nix"
 
+log() {
+  printf '>> %s\n' "$*"
+}
+
 if ! command -v jq >/dev/null 2>&1; then
   echo "jq is required but not installed." >&2
   exit 1
 fi
 
+log "Resolving clawdbot main SHA"
 latest_sha=$(git ls-remote https://github.com/clawdbot/clawdbot.git refs/heads/main | awk '{print $1}' || true)
 if [[ -z "$latest_sha" ]]; then
   echo "Failed to resolve clawdbot main SHA" >&2
   exit 1
 fi
+log "Latest clawdbot main: $latest_sha"
 
 source_url="https://github.com/clawdbot/clawdbot/archive/${latest_sha}.tar.gz"
+log "Prefetching source tarball"
 source_prefetch=$(
   nix --extra-experimental-features "nix-command flakes" store prefetch-file --unpack --json "$source_url" 2>"/tmp/nix-prefetch-source.err" \
   || true
@@ -34,10 +41,12 @@ if [[ -z "$source_hash" ]]; then
   echo "Failed to parse source hash" >&2
   exit 1
 fi
+log "Source hash: $source_hash"
 
 perl -0pi -e "s|rev = \"[^\"]+\";|rev = \"${latest_sha}\";|" "$source_file"
 perl -0pi -e "s|hash = \"[^\"]+\";|hash = \"${source_hash}\";|" "$source_file"
 
+log "Fetching latest release metadata"
 release_json=$(gh api /repos/clawdbot/clawdbot/releases?per_page=20 || true)
 if [[ -z "$release_json" ]]; then
   echo "Failed to fetch release metadata" >&2
@@ -48,12 +57,14 @@ if [[ -z "$release_tag" ]]; then
   echo "Failed to resolve a release tag with a Clawdis app asset" >&2
   exit 1
 fi
+log "Latest app release tag with asset: $release_tag"
 
 app_url=$(printf '%s' "$release_json" | jq -r '[.[] | select(.assets[]?.name | test("^Clawdis-.*\\.zip$"))][0].assets[] | select(.name | test("^Clawdis-.*\\.zip$")) | .browser_download_url' | head -n 1 || true)
 if [[ -z "$app_url" ]]; then
   echo "Failed to resolve Clawdis app asset URL from latest release" >&2
   exit 1
 fi
+log "App asset URL: $app_url"
 
 app_prefetch=$(
   nix --extra-experimental-features "nix-command flakes" store prefetch-file --unpack --json "$app_url" 2>"/tmp/nix-prefetch-app.err" \
@@ -72,6 +83,7 @@ if [[ -z "$app_hash" ]]; then
   echo "Failed to parse app hash" >&2
   exit 1
 fi
+log "App hash: $app_hash"
 
 app_version="${release_tag#v}"
 perl -0pi -e "s|version = \"[^\"]+\";|version = \"${app_version}\";|" "$app_file"
@@ -79,6 +91,7 @@ perl -0pi -e "s|url = \"[^\"]+\";|url = \"${app_url}\";|" "$app_file"
 perl -0pi -e "s|hash = \"[^\"]+\";|hash = \"${app_hash}\";|" "$app_file"
 
 build_log=$(mktemp)
+log "Building gateway to validate pnpmDepsHash"
 if ! nix build .#clawdbot-gateway --accept-flake-config >"$build_log" 2>&1; then
   pnpm_hash=$(grep -Eo 'got: *sha256-[A-Za-z0-9+/=]+' "$build_log" | head -n 1 | sed 's/.*got: *//')
   if [[ -z "$pnpm_hash" ]]; then
@@ -91,6 +104,7 @@ if ! nix build .#clawdbot-gateway --accept-flake-config >"$build_log" 2>&1; then
 fi
 rm -f "$build_log"
 
+log "Building app to validate fetchzip hash"
 nix build .#clawdbot-app --accept-flake-config
 
 if git diff --quiet; then
@@ -98,6 +112,7 @@ if git diff --quiet; then
   exit 0
 fi
 
+log "Committing updated pins"
 git add "$source_file" "$app_file"
 git commit -F - <<'EOF'
 🤖 codex: bump clawdbot pins (no-issue)
