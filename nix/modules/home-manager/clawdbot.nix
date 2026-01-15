@@ -125,6 +125,24 @@ let
         description = "Gateway port used by the Clawdbot desktop app.";
       };
 
+      gatewayTailscale = lib.mkOption {
+        type = lib.types.enum [ "off" "serve" "funnel" ];
+        default = "off";
+        description = "Tailscale exposure mode: off (disabled), serve (tailnet only), funnel (public internet).";
+      };
+
+      gatewayAuth = lib.mkOption {
+        type = lib.types.enum [ "none" "token" "password" ];
+        default = "none";
+        description = "Gateway authentication mode.";
+      };
+
+      gatewayPasswordFile = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        description = "Path to file containing gateway password (for auth=password).";
+      };
+
       gatewayPath = lib.mkOption {
         type = lib.types.nullOr lib.types.str;
         default = null;
@@ -300,6 +318,9 @@ let
     configPath = "${cfg.stateDir}/clawdbot.json";
     logPath = "/tmp/clawdbot/clawdbot-gateway.log";
     gatewayPort = 18789;
+    gatewayTailscale = "off";
+    gatewayAuth = "none";
+    gatewayPasswordFile = null;
     providers = cfg.providers;
     routing = cfg.routing;
     launchd = cfg.launchd;
@@ -806,7 +827,12 @@ let
           Description = "Clawdbot gateway (${name})";
         };
         Service = {
-          ExecStart = "${gatewayWrapper}/bin/clawdbot-gateway-${name} gateway --port ${toString inst.gatewayPort}";
+          ExecStart = lib.concatStringsSep " " ([
+            "${gatewayWrapper}/bin/clawdbot-gateway-${name}"
+            "gateway"
+            "--port ${toString inst.gatewayPort}"
+          ] ++ lib.optional (inst.gatewayTailscale != "off") "--tailscale ${inst.gatewayTailscale}"
+            ++ lib.optional (inst.gatewayAuth != "none") "--auth ${inst.gatewayAuth}");
           WorkingDirectory = inst.stateDir;
           Restart = "always";
           RestartSec = "1s";
@@ -821,6 +847,9 @@ let
           ];
           StandardOutput = "append:${inst.logPath}";
           StandardError = "append:${inst.logPath}";
+        } // lib.optionalAttrs (inst.gatewayPasswordFile != null) {
+          ExecStartPre = "${pkgs.bash}/bin/bash -c 'echo CLAWDBOT_GATEWAY_PASSWORD=$(cat ${inst.gatewayPasswordFile}) > /tmp/clawdbot-gateway-env-${name}'";
+          EnvironmentFile = "/tmp/clawdbot-gateway-env-${name}";
         };
         Install = {
           WantedBy = [ "default.target" ];
