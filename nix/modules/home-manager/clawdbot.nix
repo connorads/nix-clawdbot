@@ -39,7 +39,10 @@ let
     telegram = {
       enabled = true;
       tokenFile = inst.providers.telegram.botTokenFile;
-      allowFrom = inst.providers.telegram.allowFrom;
+      allowFrom =
+        if inst.providers.telegram.allowFromFile != null
+        then { "$include" = inst.providers.telegram.allowFromFile; }
+        else inst.providers.telegram.allowFrom;
       groups = inst.providers.telegram.groups;
     };
   };
@@ -156,7 +159,11 @@ let
           description = "Allowed Telegram chat IDs.";
         };
 
-        
+        allowFromFile = lib.mkOption {
+          type = lib.types.nullOr lib.types.str;
+          default = null;
+          description = "Path to JSON file containing allowed Telegram chat IDs (uses $include). Takes precedence over allowFrom.";
+        };
 
         groups = lib.mkOption {
           type = lib.types.attrs;
@@ -862,8 +869,8 @@ let
       message = "programs.clawdbot.instances.${name}.providers.telegram.botTokenFile must be set when Telegram is enabled.";
     }
     {
-      assertion = !inst.providers.telegram.enable || (lib.length inst.providers.telegram.allowFrom > 0);
-      message = "programs.clawdbot.instances.${name}.providers.telegram.allowFrom must be non-empty when Telegram is enabled.";
+      assertion = !inst.providers.telegram.enable || (lib.length inst.providers.telegram.allowFrom > 0) || (inst.providers.telegram.allowFromFile != null);
+      message = "programs.clawdbot.instances.${name}.providers.telegram: either allowFrom must be non-empty or allowFromFile must be set when Telegram is enabled.";
     }
   ]) enabledInstances);
 
@@ -1065,7 +1072,11 @@ in {
         description = "Allowed Telegram chat IDs.";
       };
 
-      
+      allowFromFile = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        description = "Path to JSON file containing allowed Telegram chat IDs (uses $include). Takes precedence over allowFrom.";
+      };
     };
 
     providers.anthropic = {
