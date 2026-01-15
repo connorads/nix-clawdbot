@@ -155,6 +155,12 @@ let
         description = "Path to file containing gateway password (for auth=password).";
       };
 
+      gatewayTokenFile = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        description = "Path to file containing gateway token (for auth=token).";
+      };
+
       gatewayPath = lib.mkOption {
         type = lib.types.nullOr lib.types.str;
         default = null;
@@ -338,6 +344,7 @@ let
     gatewayTailscale = "off";
     gatewayAuth = "none";
     gatewayPasswordFile = null;
+    gatewayTokenFile = null;
     providers = cfg.providers;
     routing = cfg.routing;
     launchd = cfg.launchd;
@@ -798,6 +805,13 @@ let
       if [ -f "${inst.gatewayPasswordFile}" ]; then
         CLAWDBOT_GATEWAY_PASSWORD="$(${pkgs.coreutils}/bin/cat "${inst.gatewayPasswordFile}")"
         export CLAWDBOT_GATEWAY_PASSWORD
+      fi
+      ''}
+
+      ${lib.optionalString (inst.gatewayTokenFile != null) ''
+      if [ -f "${inst.gatewayTokenFile}" ]; then
+        CLAWDBOT_GATEWAY_TOKEN="$(${pkgs.coreutils}/bin/cat "${inst.gatewayTokenFile}")"
+        export CLAWDBOT_GATEWAY_TOKEN
       fi
       ''}
 
