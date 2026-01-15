@@ -25,6 +25,8 @@ let
     } // lib.optionalAttrs (inst.gatewayAuth != "none") {
       auth = {
         mode = inst.gatewayAuth;
+      } // lib.optionalAttrs (inst.gatewayAuthAllowTailscale != null) {
+        allowTailscale = inst.gatewayAuthAllowTailscale;
       };
     };
     agents = {
@@ -163,6 +165,12 @@ let
         type = lib.types.nullOr lib.types.str;
         default = null;
         description = "Path to file containing gateway token (for auth=token).";
+      };
+
+      gatewayAuthAllowTailscale = lib.mkOption {
+        type = lib.types.nullOr lib.types.bool;
+        default = null;
+        description = "Allow Tailscale Serve identity headers as authentication (default: true for Serve, false otherwise). Set to false to require token/password even for Tailscale users.";
       };
 
       gatewayPath = lib.mkOption {
@@ -349,6 +357,7 @@ let
     gatewayAuth = "none";
     gatewayPasswordFile = null;
     gatewayTokenFile = null;
+    gatewayAuthAllowTailscale = null;
     providers = cfg.providers;
     routing = cfg.routing;
     launchd = cfg.launchd;
