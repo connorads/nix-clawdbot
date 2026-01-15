@@ -786,7 +786,7 @@ let
           echo "Anthropic API key file not found: ${inst.providers.anthropic.apiKeyFile}" >&2
           exit 1
         fi
-        ANTHROPIC_API_KEY="$(cat "${inst.providers.anthropic.apiKeyFile}")"
+        ANTHROPIC_API_KEY="$(${pkgs.coreutils}/bin/cat "${inst.providers.anthropic.apiKeyFile}")"
         if [ -z "$ANTHROPIC_API_KEY" ]; then
           echo "Anthropic API key file is empty: ${inst.providers.anthropic.apiKeyFile}" >&2
           exit 1
@@ -796,7 +796,7 @@ let
 
       ${lib.optionalString (inst.gatewayPasswordFile != null) ''
       if [ -f "${inst.gatewayPasswordFile}" ]; then
-        CLAWDBOT_GATEWAY_PASSWORD="$(cat "${inst.gatewayPasswordFile}")"
+        CLAWDBOT_GATEWAY_PASSWORD="$(${pkgs.coreutils}/bin/cat "${inst.gatewayPasswordFile}")"
         export CLAWDBOT_GATEWAY_PASSWORD
       fi
       ''}
