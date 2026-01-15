@@ -806,7 +806,7 @@ let
   in {
     homeFile = {
       name = toRelative inst.configPath;
-      value = { text = configJson; };
+      value = { text = configJson; force = true; };
     };
     configFile = configFile;
     configPath = inst.configPath;
