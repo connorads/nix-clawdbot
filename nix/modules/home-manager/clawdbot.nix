@@ -19,7 +19,10 @@ let
   generatedConfigOptions = import ../../generated/clawdbot-config-options.nix { lib = lib; };
 
   mkBaseConfig = workspaceDir: inst: {
-    gateway = { mode = "local"; };
+    gateway = {
+      mode = "local";
+      bind = inst.gatewayBind;
+    };
     agents = {
       defaults = {
         workspace = workspaceDir;
@@ -126,6 +129,12 @@ let
         type = lib.types.int;
         default = 18789;
         description = "Gateway port used by the Clawdbot desktop app.";
+      };
+
+      gatewayBind = lib.mkOption {
+        type = lib.types.enum [ "loopback" "tailnet" "lan" "auto" ];
+        default = "loopback";
+        description = "Gateway bind mode: loopback (localhost only), tailnet (Tailscale interface), lan (local network), or auto.";
       };
 
       gatewayPath = lib.mkOption {
@@ -307,6 +316,7 @@ let
     configPath = "${cfg.stateDir}/clawdbot.json";
     logPath = "/tmp/clawdbot/clawdbot-gateway.log";
     gatewayPort = 18789;
+    gatewayBind = "loopback";
     providers = cfg.providers;
     routing = cfg.routing;
     launchd = cfg.launchd;
