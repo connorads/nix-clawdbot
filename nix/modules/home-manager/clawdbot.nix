@@ -22,6 +22,10 @@ let
     gateway = {
       mode = "local";
       bind = inst.gatewayBind;
+    } // lib.optionalAttrs (inst.gatewayAuth != "none") {
+      auth = {
+        mode = inst.gatewayAuth;
+      };
     };
     agents = {
       defaults = {
