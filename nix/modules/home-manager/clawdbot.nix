@@ -794,6 +794,13 @@ let
         export ANTHROPIC_API_KEY
       fi
 
+      ${lib.optionalString (inst.gatewayPasswordFile != null) ''
+      if [ -f "${inst.gatewayPasswordFile}" ]; then
+        CLAWDBOT_GATEWAY_PASSWORD="$(cat "${inst.gatewayPasswordFile}")"
+        export CLAWDBOT_GATEWAY_PASSWORD
+      fi
+      ''}
+
       exec "${gatewayPackage}/bin/clawdbot" "$@"
     '';
   in {
@@ -865,9 +872,6 @@ let
           ];
           StandardOutput = "append:${inst.logPath}";
           StandardError = "append:${inst.logPath}";
-        } // lib.optionalAttrs (inst.gatewayPasswordFile != null) {
-          ExecStartPre = "${pkgs.bash}/bin/bash -c 'echo CLAWDBOT_GATEWAY_PASSWORD=$(cat ${inst.gatewayPasswordFile}) > /tmp/clawdbot-gateway-env-${name}'";
-          EnvironmentFile = "/tmp/clawdbot-gateway-env-${name}";
         };
         Install = {
           WantedBy = [ "default.target" ];
