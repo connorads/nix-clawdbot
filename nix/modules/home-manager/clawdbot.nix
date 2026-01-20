@@ -45,14 +45,16 @@ let
   };
 
   mkTelegramConfig = inst: lib.optionalAttrs inst.providers.telegram.enable {
-    telegram = {
-      enabled = true;
-      tokenFile = inst.providers.telegram.botTokenFile;
-      allowFrom =
-        if inst.providers.telegram.allowFromFile != null
-        then { "$include" = inst.providers.telegram.allowFromFile; }
-        else inst.providers.telegram.allowFrom;
-      groups = inst.providers.telegram.groups;
+    channels = {
+      telegram = {
+        enabled = true;
+        tokenFile = inst.providers.telegram.botTokenFile;
+        allowFrom =
+          if inst.providers.telegram.allowFromFile != null
+          then { "$include" = inst.providers.telegram.allowFromFile; }
+          else inst.providers.telegram.allowFrom;
+        groups = inst.providers.telegram.groups;
+      };
     };
   };
 
@@ -60,7 +62,7 @@ let
     messages = {
       queue = {
         mode = inst.routing.queue.mode;
-        byProvider = inst.routing.queue.byProvider;
+        byChannel = inst.routing.queue.byProvider;
       };
     };
   };
